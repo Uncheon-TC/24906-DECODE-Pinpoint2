@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@TeleOp(name = "shoot + color sensor", group = "2024-2025 Test OP")
+@TeleOp(name = "shoot + color sensor1", group = "2024-2025 Test OP")
 public class Maindrive_test2 extends LinearOpMode {
 
 
