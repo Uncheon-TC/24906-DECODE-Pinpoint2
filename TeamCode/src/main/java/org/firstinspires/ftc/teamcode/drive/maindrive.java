@@ -7,25 +7,22 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp(name = "decode 23020", group = "2024-2025 Test OP")
 public class maindrive extends LinearOpMode {
 
-    // Drive motors
     private DcMotor FrontLeftMotor, FrontRightMotor, BackLeftMotor, BackRightMotor;
-
-    // GT motor
-    private DcMotor eat;
-
-    // IMU
+    private DcMotor eat, SL, SR;
+    private Servo servo_S;
     private IMU imu;
 
     @Override
     public void runOpMode() throws InterruptedException {
 
-        // Drive motor mapping
+
         FrontLeftMotor  = hardwareMap.dcMotor.get("FL");
         FrontRightMotor = hardwareMap.dcMotor.get("FR");
         BackLeftMotor   = hardwareMap.dcMotor.get("BL");
@@ -34,13 +31,28 @@ public class maindrive extends LinearOpMode {
         FrontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         BackLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // GT motor
-        eat = hardwareMap.dcMotor.get("eat");
-        eat.setDirection(DcMotorSimple.Direction.REVERSE);
-        eat.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        eat.setPower(0);
 
-        // IMU init
+        eat = hardwareMap.dcMotor.get("eat");
+        SL  = hardwareMap.dcMotor.get("SL");
+        SR  = hardwareMap.dcMotor.get("SR");
+
+        eat.setDirection(DcMotorSimple.Direction.REVERSE);
+        SL.setDirection(DcMotorSimple.Direction.FORWARD);
+        SR.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        eat.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        SL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        SR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        eat.setPower(0);
+        SL.setPower(0);
+        SR.setPower(0);
+
+
+        servo_S = hardwareMap.servo.get("servo_S");
+        servo_S.setPosition(0.5); // 기본 위치
+
+
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(
                 new RevHubOrientationOnRobot(
@@ -60,7 +72,7 @@ public class maindrive extends LinearOpMode {
             previousGamepad1.copy(currentGamepad1);
             currentGamepad1.copy(gamepad1);
 
-            /* -------------------- DRIVE (Field Centric) -------------------- */
+
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
             double rx = -gamepad1.right_stick_x;
@@ -88,17 +100,32 @@ public class maindrive extends LinearOpMode {
             FrontRightMotor.setPower((rotY - rotX + rx) / denominator * slow);
             BackRightMotor.setPower((rotY + rotX + rx) / denominator * slow);
 
-            /* -------------------- GT MOTOR -------------------- */
+
+            servo_S.setPosition(gamepad1.left_bumper ? 0.3 : 0.5);
+
+
             if (rising_edge(currentGamepad1.a, previousGamepad1.a)) {
-                eat.setPower(1);
+                eat.setPower(0.8);
             }
 
             if (rising_edge(currentGamepad1.b, previousGamepad1.b)) {
                 eat.setPower(0);
             }
 
-            /* -------------------- TELEMETRY -------------------- */
+            if (rising_edge(currentGamepad1.x, previousGamepad1.x)) {
+                SL.setPower(0.6);
+                SR.setPower(0.6);
+            }
+
+            if (rising_edge(currentGamepad1.y, previousGamepad1.y)) {
+                SL.setPower(0);
+                SR.setPower(0);
+            }
+
             telemetry.addData("eat Power", eat.getPower());
+            telemetry.addData("SL Power", SL.getPower());
+            telemetry.addData("SR Power", SR.getPower());
+            telemetry.addData("Servo_S Pos", servo_S.getPosition());
             telemetry.addData("Heading (deg)",
                     imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
             telemetry.update();
@@ -107,6 +134,8 @@ public class maindrive extends LinearOpMode {
         }
 
         eat.setPower(0);
+        SL.setPower(0);
+        SR.setPower(0);
     }
 
     private boolean rising_edge(boolean current, boolean previous) {
