@@ -38,7 +38,7 @@ public class maindrive extends LinearOpMode {
         SL  = hardwareMap.dcMotor.get("SL");
         SR  = hardwareMap.dcMotor.get("SR");
 
-        eat.setDirection(DcMotorSimple.Direction.REVERSE);
+        eat.setDirection(DcMotorSimple.Direction.FORWARD);
         SL.setDirection(DcMotorSimple.Direction.FORWARD);
         SR.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -103,11 +103,11 @@ public class maindrive extends LinearOpMode {
             BackRightMotor.setPower((rotY + rotX + rx) / denominator * slow);
 
 
-            servo_S.setPosition(gamepad1.left_bumper ? 0.3 : 0.5);
+            servo_S.setPosition(gamepad1.left_bumper ? 0.35 : 0.5);
 
 
             if (rising_edge(currentGamepad1.a, previousGamepad1.a)) {
-                eat.setPower(0.8);
+                eat.setPower(1);
             }
 
             if (rising_edge(currentGamepad1.b, previousGamepad1.b)) {
@@ -115,8 +115,8 @@ public class maindrive extends LinearOpMode {
             }
 
             if (rising_edge(currentGamepad1.x, previousGamepad1.x)) {
-                SL.setPower(0.8);
-                SR.setPower(0.8);
+                SL.setPower(1);
+                SR.setPower(1);
             }
 
             if (rising_edge(currentGamepad1.y, previousGamepad1.y)) {
