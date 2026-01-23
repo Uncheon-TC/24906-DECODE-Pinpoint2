@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@TeleOp(name = "decode 23020", group = "2024-2025 Test OP")
+@TeleOp(name = "decode 24906", group = "2024-2025 Test OP")
 public class maindrive extends LinearOpMode {
 
     private DcMotor FrontLeftMotor, FrontRightMotor, BackLeftMotor, BackRightMotor;
@@ -22,23 +22,22 @@ public class maindrive extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
-
+        // ===== 모터 초기화 =====
         FrontLeftMotor  = hardwareMap.dcMotor.get("FL");
         FrontRightMotor = hardwareMap.dcMotor.get("FR");
         BackLeftMotor   = hardwareMap.dcMotor.get("BL");
         BackRightMotor  = hardwareMap.dcMotor.get("BR");
 
         FrontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        BackLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        FrontRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-
-
+        BackLeftMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        FrontRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        BackRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
 
         eat = hardwareMap.dcMotor.get("eat");
         SL  = hardwareMap.dcMotor.get("SL");
         SR  = hardwareMap.dcMotor.get("SR");
 
-        eat.setDirection(DcMotorSimple.Direction.FORWARD);
+        eat.setDirection(DcMotorSimple.Direction.REVERSE);
         SL.setDirection(DcMotorSimple.Direction.FORWARD);
         SR.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -50,11 +49,11 @@ public class maindrive extends LinearOpMode {
         SL.setPower(0);
         SR.setPower(0);
 
-
+        // ===== 서보 초기화 =====
         servo_S = hardwareMap.servo.get("servo_S");
-        servo_S.setPosition(0.5); // 기본 위치
+        servo_S.setPosition(0.5);
 
-
+        // ===== IMU 초기화 =====
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(
                 new RevHubOrientationOnRobot(
@@ -74,70 +73,90 @@ public class maindrive extends LinearOpMode {
             previousGamepad1.copy(currentGamepad1);
             currentGamepad1.copy(gamepad1);
 
-
-            double y = -gamepad1.left_stick_y;
-            double x = gamepad1.left_stick_x;
+            // ===== 조이스틱 입력 =====
+            double y = -gamepad1.left_stick_y; // 상/하 반전
+            double x = -gamepad1.left_stick_x;
             double rx = -gamepad1.right_stick_x;
 
             double slow = 1 - (0.8 * gamepad1.right_trigger);
 
             if (gamepad1.options) {
-                imu.resetYaw();
+                imu.resetYaw(); // 옵션 버튼으로 필드 기준 초기화
             }
 
-            double botHeading = imu.getRobotYawPitchRollAngles()
-                    .getYaw(AngleUnit.RADIANS);
-
+            // ===== 필드 중심 변환 =====
+            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
             double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
             double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
 
-            rotX *= 1.1;
+            rotX *= 1.1; // 스트레이프 보정
 
-            double denominator = Math.max(
-                    Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1
-            );
+            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
 
             FrontLeftMotor.setPower((rotY + rotX - rx) / denominator * slow);
             BackLeftMotor.setPower((rotY - rotX - rx) / denominator * slow);
             FrontRightMotor.setPower((rotY - rotX + rx) / denominator * slow);
             BackRightMotor.setPower((rotY + rotX + rx) / denominator * slow);
 
+            // ===== 흡입 + 서보 제어 =====
+            if (gamepad1.left_bumper) {
+                servo_S.setPosition(0.7);
+                eat.setPower(0.8);
+            } else {
+                servo_S.setPosition(0.5);
+            }
 
-            servo_S.setPosition(gamepad1.left_bumper ? 0.35 : 0.5);
-
-
+            // eat 모터 토글
             if (rising_edge(currentGamepad1.a, previousGamepad1.a)) {
                 eat.setPower(1);
             }
-
             if (rising_edge(currentGamepad1.b, previousGamepad1.b)) {
                 eat.setPower(0);
             }
 
+            // SL / SR 토글
             if (rising_edge(currentGamepad1.x, previousGamepad1.x)) {
-                SL.setPower(1);
-                SR.setPower(1);
+                SL.setPower(0.75);
+                SR.setPower(0.75);
             }
-
             if (rising_edge(currentGamepad1.y, previousGamepad1.y)) {
                 SL.setPower(0);
                 SR.setPower(0);
             }
 
+            // SL / SR 디패드 미세 조정
+            if (rising_edge(currentGamepad1.dpad_up, previousGamepad1.dpad_up)) {
+                double newPower = SL.getPower() + 0.05;
+                newPower = Math.max(-1.0, Math.min(1.0, newPower));
+                SL.setPower(newPower);
+                SR.setPower(newPower);
+            }
+            if (rising_edge(currentGamepad1.dpad_down, previousGamepad1.dpad_down)) {
+                double newPower = SL.getPower() - 0.05;
+                newPower = Math.max(-1.0, Math.min(1.0, newPower));
+                SL.setPower(newPower);
+                SR.setPower(newPower);
+            }
+
+            // ===== Telemetry =====
             telemetry.addData("eat Power", eat.getPower());
             telemetry.addData("SL Power", SL.getPower());
             telemetry.addData("SR Power", SR.getPower());
             telemetry.addData("Servo_S Pos", servo_S.getPosition());
-            telemetry.addData("Heading (deg)",
-                    imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
+            telemetry.addData("Heading (deg)", imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
             telemetry.update();
 
             sleep(50);
         }
 
+        // ===== 종료시 모터 정지 =====
         eat.setPower(0);
         SL.setPower(0);
         SR.setPower(0);
+        FrontLeftMotor.setPower(0);
+        FrontRightMotor.setPower(0);
+        BackLeftMotor.setPower(0);
+        BackRightMotor.setPower(0);
     }
 
     private boolean rising_edge(boolean current, boolean previous) {
