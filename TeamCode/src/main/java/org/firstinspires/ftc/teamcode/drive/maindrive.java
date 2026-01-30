@@ -36,6 +36,7 @@ public class maindrive extends LinearOpMode {
 
     public static int high_speed = 0;
     public static int low_speed = 0;
+    public int vel_off = 0;
 
 
     private IMU imu;
@@ -52,16 +53,16 @@ public class maindrive extends LinearOpMode {
         SR = hardwareMap.get(DcMotorEx.class, "SR");
         GT = hardwareMap.dcMotor.get("GT");
 
-        SL.setDirection(DcMotorSimple.Direction.REVERSE);
-        SR.setDirection(DcMotorSimple.Direction.FORWARD);
+        //SL.setDirection(DcMotorSimple.Direction.REVERSE);
+        //SR.setDirection(DcMotorSimple.Direction.FORWARD);
         GT.setDirection(DcMotorSimple.Direction.REVERSE);
 
         SL.setPower(0);
         SR.setPower(0);
         GT.setPower(0);
 
-        SL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        SR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //SL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //SR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         GT.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         FrontLeftMotor = hardwareMap.dcMotor.get("FL");
@@ -74,8 +75,8 @@ public class maindrive extends LinearOpMode {
 
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
-                RevHubOrientationOnRobot.UsbFacingDirection.UP));
+                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
+                RevHubOrientationOnRobot.UsbFacingDirection.DOWN));
         imu.initialize(parameters);
 
 
@@ -106,6 +107,8 @@ public class maindrive extends LinearOpMode {
 
         SL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         SR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        SL.setDirection(DcMotorSimple.Direction.REVERSE);
 
         com.qualcomm.robotcore.hardware.PIDFCoefficients flywheel_pidfCoeffiients
                 = new com.qualcomm.robotcore.hardware
@@ -178,14 +181,14 @@ public class maindrive extends LinearOpMode {
 
             if (!shooter_status) {
                 if (gamepad1.xWasPressed()) shooter_status = true;
-                SL.setVelocity(target_speed);
-                SR.setPower(SL.getPower());
+                SL.setPower(0);
+                SR.setPower(0);
             }
 
             if (shooter_status) {
                 if (gamepad1.yWasPressed()) shooter_status = false;
-                SL.setVelocity(0);
-                SR.setPower(0);
+                SL.setVelocity(target_speed + vel_off);
+                SR.setPower(SL.getPower());
             }
 
             switch (shooter_speed_status) {
@@ -199,6 +202,9 @@ public class maindrive extends LinearOpMode {
                     if (gamepad1.dpadDownWasPressed()) shooter_speed_status = 0;
                     break;
             }
+
+            if (gamepad2.dpadUpWasPressed()) vel_off += 100;
+            if (gamepad2.dpadDownWasPressed()) vel_off -= 100;
 
 
             int red_L = colorSensor_L.red();
@@ -221,6 +227,12 @@ public class maindrive extends LinearOpMode {
             telemetry.addData("Heading (deg)", imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
             telemetry.addData("Left Sensor", detectedColor_L + " [R:%d G:%d B:%d]", red_L, green_L, blue_L);
             telemetry.addData("Right Sensor", detectedColor_R + " [R:%d G:%d B:%d]", red_R, green_R, blue_R);
+            telemetry.addData("shooter_status", shooter_status);
+            telemetry.addData("high_speed", high_speed);
+            telemetry.addData("low_speed", low_speed);
+            telemetry.addData("vel_off", vel_off);
+            telemetry.addData("current_vel", SL.getVelocity());
+            telemetry.addData("target_vel", target_speed + vel_off);
             telemetry.update();
 
             sleep(50);
