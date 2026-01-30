@@ -179,11 +179,13 @@ public class maindrive extends LinearOpMode {
             if (!shooter_status) {
                 if (gamepad1.xWasPressed()) shooter_status = true;
                 SL.setVelocity(target_speed);
+                SR.setPower(SL.getPower());
             }
 
             if (shooter_status) {
                 if (gamepad1.yWasPressed()) shooter_status = false;
                 SL.setVelocity(0);
+                SR.setPower(0);
             }
 
             switch (shooter_speed_status) {
