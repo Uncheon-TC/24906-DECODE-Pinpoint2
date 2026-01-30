@@ -58,7 +58,7 @@ public class Maindrive_test2 extends LinearOpMode {
         BackRightMotor = hardwareMap.dcMotor.get("BR");
 
         FrontRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        BackRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        //BackRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(

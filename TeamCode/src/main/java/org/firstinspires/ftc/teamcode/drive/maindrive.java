@@ -1,29 +1,41 @@
 package org.firstinspires.ftc.teamcode.drive;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+@Config
 @TeleOp(name = "shoot + color sensor", group = "2024-2025 Test OP")
 public class maindrive extends LinearOpMode {
 
 
-    private DcMotor SL, SR, GT;
+    private DcMotor GT;
+    private DcMotorEx SL, SR;
     private DcMotor FrontLeftMotor, FrontRightMotor, BackLeftMotor, BackRightMotor;
 
 
     private Servo servo_L, servo_R;
 
+    private boolean shooter_status = false;
+    private int shooter_speed_status = 0;
+    private int target_speed = 0;
 
     private ColorSensor colorSensor_L, colorSensor_R;
     private Servo light_L, light_R;
+
+    private static int high_speed = 0;
+    private static int low_speed = 0;
 
 
     private IMU imu;
@@ -36,8 +48,8 @@ public class maindrive extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
 
 
-        SL = hardwareMap.dcMotor.get("SL");
-        SR = hardwareMap.dcMotor.get("SR");
+        SL = hardwareMap.get(DcMotorEx.class, "SL");
+        SR = hardwareMap.get(DcMotorEx.class, "SR");
         GT = hardwareMap.dcMotor.get("GT");
 
         SL.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -58,7 +70,7 @@ public class maindrive extends LinearOpMode {
         BackRightMotor = hardwareMap.dcMotor.get("BR");
 
         FrontRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        BackRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        //BackRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
@@ -84,6 +96,24 @@ public class maindrive extends LinearOpMode {
 
         Gamepad currentGamepad1 = new Gamepad();
         Gamepad previousGamepad1 = new Gamepad();
+
+        SL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        SR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        SL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        SR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        SL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        SR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        com.qualcomm.robotcore.hardware.PIDFCoefficients flywheel_pidfCoeffiients
+                = new com.qualcomm.robotcore.hardware
+                .PIDFCoefficients(700, 100, 400, 0);
+
+        SL.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheel_pidfCoeffiients);
+
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         waitForStart();
 
@@ -121,18 +151,18 @@ public class maindrive extends LinearOpMode {
             if (rising_edge(currentGamepad1.dpad_down, previousGamepad1.dpad_down))
                 power = Math.max(0.0, power - step);
 
-            if (rising_edge(currentGamepad1.x, previousGamepad1.x))
-                shooterOn = true;
-            if (rising_edge(currentGamepad1.y, previousGamepad1.y))
-                shooterOn = false;
-
-            if (shooterOn) {
-                SL.setPower(power);
-                SR.setPower(power);
-            } else {
-                SL.setPower(0);
-                SR.setPower(0);
-            }
+//            if (rising_edge(currentGamepad1.x, previousGamepad1.x))
+//                shooterOn = true;
+//            if (rising_edge(currentGamepad1.y, previousGamepad1.y))
+//                shooterOn = false;
+//
+//            if (shooterOn) {
+//                SL.setPower(power);
+//                SR.setPower(power);
+//            } else {
+//                SL.setPower(0);
+//                SR.setPower(0);
+//            }
 
             if (rising_edge(currentGamepad1.a, previousGamepad1.a))
                 GT.setPower(0.6);
@@ -140,12 +170,33 @@ public class maindrive extends LinearOpMode {
                 GT.setPower(0);
 
 
-            double rightBumperPosition = gamepad1.right_bumper ? 0.1 : 0.5;
-            double leftBumperPosition = gamepad1.left_bumper ? 0.1 : 0.5;
+            double rightBumperPosition = gamepad1.right_bumper ? 0.9 : 0.5;
+            double leftBumperPosition = gamepad1.left_bumper ? 0.9 : 0.5;
 
             servo_R.setPosition(rightBumperPosition);
             servo_L.setPosition(leftBumperPosition);
 
+            if (!shooter_status) {
+                if (gamepad1.xWasPressed()) shooter_status = true;
+                SL.setVelocity(target_speed);
+            }
+
+            if (shooter_status) {
+                if (gamepad1.yWasPressed()) shooter_status = false;
+                SL.setVelocity(0);
+            }
+
+            switch (shooter_speed_status) {
+                case 0:
+                    target_speed = low_speed;
+                    if (gamepad1.dpadUpWasPressed()) shooter_speed_status = 1;
+                    break;
+
+                case 1:
+                    target_speed = high_speed;
+                    if (gamepad1.dpadDownWasPressed()) shooter_speed_status = 0;
+                    break;
+            }
 
 
             int red_L = colorSensor_L.red();
