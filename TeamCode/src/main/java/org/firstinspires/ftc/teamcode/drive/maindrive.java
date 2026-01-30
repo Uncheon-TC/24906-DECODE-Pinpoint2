@@ -34,8 +34,8 @@ public class maindrive extends LinearOpMode {
     private ColorSensor colorSensor_L, colorSensor_R;
     private Servo light_L, light_R;
 
-    private static int high_speed = 0;
-    private static int low_speed = 0;
+    public static int high_speed = 0;
+    public static int low_speed = 0;
 
 
     private IMU imu;
