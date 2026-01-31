@@ -167,6 +167,10 @@ public class maindrive extends LinearOpMode {
 //                SR.setPower(0);
 //            }
 
+            if (rising_edge(currentGamepad1.dpad_left, previousGamepad1.dpad_left))
+            GT.setPower(-0.6);
+
+
             if (rising_edge(currentGamepad1.a, previousGamepad1.a))
                 GT.setPower(0.6);
             if (rising_edge(currentGamepad1.b, previousGamepad1.b))
